@@ -81,7 +81,7 @@ my $o_timeout=  5;            	# Default 5s Timeout
 my $o_perf=	undef;		# Output performance data
 my $o_short=	undef;	# Short output parameters
 my @o_shortL=	undef;		# output type,where,cut
-my $o_reserve=	0;              # % reserved blocks (A. Greiner-Bär patch)
+my $o_reserve=	0;              # % reserved blocks (A. Greiner-BÃ¤r patch)
 my $o_giga=		undef;	# output and levels in gigabytes instead of megabytes
 # SNMPv3 specific
 my $o_login=	undef;		# Login for snmpv3
@@ -321,7 +321,7 @@ sub check_options {
     if (defined ($o_octetlength) && (isnnum($o_octetlength) || $o_octetlength > 65535 || $o_octetlength < 484 )) {
 		print "octet lenght must be < 65535 and > 484\n";print_usage(); exit $ERRORS{"UNKNOWN"};
     }	
-    #### reserved blocks checks (A. Greiner-Bär patch).
+    #### reserved blocks checks (A. Greiner-BÃ¤r patch).
     if (defined ($o_reserve) && (isnnum($o_reserve) || $o_reserve > 99 || $o_reserve < 0 )) {
 		print "reserved blocks must be < 100 and >= 0\n";print_usage(); exit $ERRORS{"UNKNOWN"};
     }
