@@ -232,7 +232,8 @@ sub check_options {
     $np->add_arg(
         spec => 'reserved|R=i',
         help => '% reserved blocks for superuser
-   For ext2/3 filesystems, it is 5% by default'
+   For ext2/3 filesystems, it is 5% by default',
+        default => $o_reserve
     );
     $np->add_arg(
         spec => 'gigabyte|G',
