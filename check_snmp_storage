@@ -726,9 +726,9 @@ my $str_output = "";
 if ( $crit_state == 1) {
     $comp_oper = ($comp_oper eq "<") ? ">" : "<";  # Inverse comp operator
     if (defined($o_shortL[1])) {
-        $str_output = join("CRITICAL : (",$comp_oper,$o_crit,$comp_unit,") ",$output);
+        $str_output = join("", "CRITICAL : (",$comp_oper,$o_crit,$comp_unit,") ",$output);
     } else {
-        $str_output = join($output,"(",$comp_oper,$o_crit,$comp_unit,") : CRITICAL");
+        $str_output = join("", $output,"(",$comp_oper,$o_crit,$comp_unit,") : CRITICAL");
     }
     (defined($o_perf)) ?  print " | ",$perf_out,"\n" : print "\n";
     $np->plugin_exit(CRITICAL, $str_output);
@@ -736,17 +736,17 @@ if ( $crit_state == 1) {
 if ( $warn_state == 1) {
     $comp_oper = ($comp_oper eq "<") ? ">" : "<";  # Inverse comp operator
     if (defined($o_shortL[1])) {
-        $str_output = join("WARNING : (",$comp_oper,$o_warn,$comp_unit,") ",$output);
+        $str_output = join("", "WARNING : (",$comp_oper,$o_warn,$comp_unit,") ",$output);
     } else {
-        $str_output = join($output,"(",$comp_oper,$o_warn,$comp_unit,") : WARNING");
+        $str_output = join("", $output,"(",$comp_oper,$o_warn,$comp_unit,") : WARNING");
     }
     (defined($o_perf)) ?  print " | ",$perf_out,"\n" : print "\n";
     $np->plugin_exit(WARNING);
 }
 if (defined($o_shortL[1])) {
-    $str_output = join("OK : (",$comp_oper,$o_warn,$comp_unit,") ",$output);
+    $str_output = join("", "OK : (",$comp_oper,$o_warn,$comp_unit,") ",$output);
 } else {
-    $str_output = join($output,"(",$comp_oper,$o_warn,$comp_unit,") : OK");
+    $str_output = join("", $output,"(",$comp_oper,$o_warn,$comp_unit,") : OK");
 }
 (defined($o_perf)) ? print " | ",$perf_out,"\n" : print "\n";
 
