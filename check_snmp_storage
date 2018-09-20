@@ -340,12 +340,12 @@ sub check_options {
     # Check warning and critical values
     if ( ( $o_type eq 'pu' ) || ( $o_type eq 'bu' )) {
         if ($o_warn >= $o_crit) {
-            $np->plugin_exit(UNKNOWN, " warn < crit if type=",$o_type);
+            $np->plugin_exit(UNKNOWN, join("", " warn < crit if type=",$o_type));
         }
     }
     if ( ( $o_type eq 'pl' ) || ( $o_type eq 'bl' )) {
         if ($o_warn <= $o_crit) {
-            $np->plugin_exit(UNKNOWN, " warn > crit if type=",$o_type);
+            $np->plugin_exit(UNKNOWN, join("", " warn > crit if type=",$o_type));
         }
     }
     if ( ($o_warn < 0 ) || ($o_crit < 0 )) {
