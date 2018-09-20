@@ -273,9 +273,7 @@ sub check_options {
     $o_privpass = $np->opts->privpass;
     $v3protocols = $np->opts->protocols;
     
-    print $o_verb;
     $o_verb = $np->opts->verbose;
-    print $o_verb;
     
     $o_noreg = $np->opts->noregexp;
     $o_sum = $np->opts->sum;
