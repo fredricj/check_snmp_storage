@@ -14,10 +14,11 @@
 use strict;
 use Net::SNMP;
 use Getopt::Long;
+use Monitoring::Plugin;
 
 my $Name = 'check_snmp_storage';
 my $Version = '1.4';
-
+my $np;
 # Nagios specific
 
 #use lib "/usr/local/nagios/libexec";
@@ -68,11 +69,9 @@ my $o_descr = 	undef; 		# description filter
 my $o_storagetype = undef;    # parse storage type also
 my $o_warn = 	undef; 		# warning limit 
 my $o_crit=	undef; 		# critical limit
-my $o_help=	undef; 		# wan't some help ?
 my $o_type=	undef;		# pl, pu, mbl, mbu 
 my @o_typeok=   ("pu","pl","bu","bl"); # valid values for o_type
 my $o_verb=	undef;		# verbose mode
-my $o_version=  undef;          # print version
 my $o_noreg=	undef;		# Do not use Regexp for name
 my $o_sum=	undef;		# add all storage before testing
 my $o_index=	undef;		# Parse index instead of description
@@ -92,13 +91,12 @@ my $o_privproto='des';		# Priv protocol
 my $o_privpass= undef;		# priv password
 # SNMP Message size parameter (Makina Corpus contrib)
 my $o_octetlength=undef;
+my $usage = "Usage: $Name [-v] -H <host> -C <snmp_community> [-2] | (-l login -x passwd [-X pass -L <authp>,<privp>]) [-p <port>] -m <name in desc_oid> [-q storagetype] -w <warn_level> -c <crit_level> [-t <timeout>] [-T pl|pu|bl|bu ] [-r -s -i -G] [-e] [-S 0|1[,1,<car>]] [-o <octet_length>] [-R <% reserved>]\n";
 
 # functions
 
-sub p_version { print "$Name version : $Version\n"; }
-
 sub print_usage {
-    print "Usage: $Name [-v] -H <host> -C <snmp_community> [-2] | (-l login -x passwd [-X pass -L <authp>,<privp>]) [-p <port>] -m <name in desc_oid> [-q storagetype] -w <warn_level> -c <crit_level> [-t <timeout>] [-T pl|pu|bl|bu ] [-r -s -i -G] [-e] [-S 0|1[,1,<car>]] [-o <octet_length>] [-R <% reserved>]\n";
+    print $usage;
 }
 
 sub round ($$) {
@@ -123,145 +121,173 @@ sub isnnum { # Return true if arg is not a number
   return 1;
 }
 
-sub help {
-   print "\nSNMP Disk Monitor for Nagios version ",$Version,"\n";
-   print "(c)2004-2007 Patrick Proy\n\n";
-   print_usage();
-   print <<EOT;
-By default, plugin will monitor %used on drives :
-warn if %used > warn and critical if %used > crit
--v, --verbose
-   print extra debugging information (and lists all storages)
--h, --help
-   print this help message
--H, --hostname=HOST
-   name or IP address of host to check
--C, --community=COMMUNITY NAME
-   community name for the host's SNMP agent (implies SNMP v1)
--2, --v2c
-   Use snmp v2c
--l, --login=LOGIN ; -x, --passwd=PASSWD
-   Login and auth password for snmpv3 authentication 
-   If no priv password exists, implies AuthNoPriv 
--X, --privpass=PASSWD
-   Priv password for snmpv3 (AuthPriv protocol)
--L, --protocols=<authproto>,<privproto>
-   <authproto> : Authentication protocol (md5|sha : default md5)
-   <privproto> : Priv protocole (des|aes : default des) 
--x, --passwd=PASSWD
-   Password for snmpv3 authentication
--p, --port=PORT
-   SNMP port (Default 161)
--D, --domain=DOMAIN
-   Selects the transport protocol: udp or tcp. (tcp|tcp6|udp|udp6 : default udp)
--m, --name=NAME
-   Name in description OID (can be mounpoints '/home' or 'Swap Space'...)
-   This is treated as a regexp : -m /var will match /var , /var/log, /opt/var ...
-   Test it before, because there are known bugs (ex : trailling /)
-   No trailing slash for mountpoints !
--q, --storagetype=[Other|Ram|VirtualMemory|FixedDisk|RemovableDisk|FloppyDisk
-                    CompactDisk|RamDisk|FlashMemory|NetworkDisk]
-   Also check the storage type in addition of the name
-   It is possible to use regular expressions ( "FixedDisk|FloppyDisk" )
--r, --noregexp
-   Do not use regexp to match NAME in description OID
--s, --sum
-   Add all storages that match NAME (used space and total space)
-   THEN make the tests.
--i, --index
-   Parse index table instead of description table to select storage
--e, --exclude
-   Select all storages except the one(s) selected by -m
-   No action on storage type selection
--T, --type=TYPE
-   pl : calculate percent left
-   pu : calculate percent used (Default)
-   bl : calculate MegaBytes left
-   bu : calculate MegaBytes used
--w, --warn=INTEGER
-   percent / MB of disk used to generate WARNING state
-   you can add the % sign 
--c, --critical=INTEGER
-   percent / MB of disk used to generate CRITICAL state
-   you can add the % sign 
--R, --reserved=INTEGER
-   % reserved blocks for superuser
-   For ext2/3 filesystems, it is 5% by default
--G, --gigabyte
-   output, warning & critical levels in gigabytes
--f, --perfparse
-   Perfparse compatible output
--S, --short=<type>[,<where>,<cut>]
-   <type>: Make the output shorter :
-     0 : only print the global result except the disk in warning or critical
-         ex: "< 80% : OK"
-     1 : Don't print all info for every disk 
-         ex : "/ : 66 %used  (<  80) : OK"
-   <where>: (optional) if = 1, put the OK/WARN/CRIT at the beginning
-   <cut>: take the <n> first caracters or <n> last if n<0
--o, --octetlength=INTEGER
-  max-size of the SNMP message, usefull in case of Too Long responses.
-  Be carefull with network filters. Range 484 - 65535, default are
-  usually 1472,1452,1460 or 1440.   
--t, --timeout=INTEGER
-   timeout for SNMP in seconds (Default: 5)
--V, --version
-   prints version number
-Note : 
-  with T=pu or T=bu : OK < warn < crit
-  with T=pl ot T=bl : crit < warn < OK
-  
-  If multiple storage are selected, the worse condition will be returned
-  i.e if one disk is critical, the return is critical
- 
-  example : 
-  Browse storage list : <script> -C <community> -H <host> -m <anything> -w 1 -c 2 -v 
-  the -m option allows regexp in perl format : 
-  Test drive C,F,G,H,I on Windows 	: -m ^[CFGHI]:    
-  Test all mounts containing /var      	: -m /var
-  Test all mounts under /var      	: -m ^/var
-  Test only /var                 	: -m /var -r
-  Test all swap spaces			: -m ^Swap
-  Test all but swap spaces		: -m ^Swap -e
 
-EOT
-}
-
-sub verb { my $t=shift; print $t,"\n" if defined($o_verb) ; }
+sub verb { my $t=shift; print $t,"\n" if $o_verb; }
 
 sub check_options {
-    Getopt::Long::Configure ("bundling");
-    GetOptions(
-		'v'	=> \$o_verb,		'verbose'	=> \$o_verb,
-        'h'     => \$o_help,    	'help'        	=> \$o_help,
-        'H:s'   => \$o_host,		'hostname:s'	=> \$o_host,
-        'p:i'   => \$o_port,   		'port:i'	=> \$o_port,
-        'D:s'   => \$o_domain,   		'domain:s'	=> \$o_domain,
-        'C:s'   => \$o_community,	'community:s'	=> \$o_community,
-	'2'     => \$o_version2,        'v2c'           => \$o_version2,
-	'l:s'	=> \$o_login,		'login:s'	=> \$o_login,
-	'x:s'	=> \$o_passwd,		'passwd:s'	=> \$o_passwd,
-	'X:s'	=> \$o_privpass,		'privpass:s'	=> \$o_privpass,
-	'L:s'	=> \$v3protocols,		'protocols:s'	=> \$v3protocols,   	
-        'c:s'   => \$o_crit,    	'critical:s'	=> \$o_crit,
-        'w:s'   => \$o_warn,    	'warn:s'	=> \$o_warn,
-	't:i'   => \$o_timeout,       	'timeout:i'     => \$o_timeout,
-        'm:s'   => \$o_descr,		'name:s'	=> \$o_descr,
-	'T:s'	=> \$o_type,		'type:s'	=> \$o_type,
-        'r'     => \$o_noreg,           'noregexp'      => \$o_noreg,
-        's'     => \$o_sum,           	'sum'      	=> \$o_sum,
-        'i'     => \$o_index,          	'index'      	=> \$o_index,
-        'e'     => \$o_negate,         	'exclude'    	=> \$o_negate,
-        'V'     => \$o_version,         'version'       => \$o_version,
-		'q:s'  	=> \$o_storagetype,	'storagetype:s'=> \$o_storagetype,
-	'S:s'   => \$o_short,         	'short:s'       => \$o_short,
-	'o:i'   => \$o_octetlength,    	'octetlength:i' => \$o_octetlength,
-	'f'	=> \$o_perf,		'perfparse'	=> \$o_perf,
-	'R:i'	=> \$o_reserve,	        'reserved:i'	=> \$o_reserve,
-	'G'	=> \$o_giga,	        'gigabyte'	=> \$o_giga
+    $np->add_arg(
+        spec => 'hostname|H=s',
+        help => 'name or IP address of host to check',
+        label => 'HOST',
+        required => 1
     );
-    if (defined($o_help) ) { help(); exit $ERRORS{"UNKNOWN"}};
-    if (defined($o_version) ) { p_version(); exit $ERRORS{"UNKNOWN"}};
+    $np->add_arg(
+        spec => 'port|p=i',
+        help => 'SNMP port (Default %s)',
+        label => 'PORT',
+        default => $o_port
+    );
+    $np->add_arg(
+        spec => 'domain|D=s',
+        help => 'Selects the transport protocol: udp or tcp. (tcp|tcp6|udp|udp6 : default %s)',
+        label => '<tcp|tcp6|udp|udp6>',
+        default => 'udp'
+    );
+    $np->add_arg(
+        spec => 'community|C=s',
+        help => 'community name for the host\'s SNMP agent (implies SNMP v1)'
+    );
+    $np->add_arg(
+        spec => 'v2c|2',
+        help => 'Use snmp v2c'
+    );
+    $np->add_arg(
+        spec => 'login|l=s',
+        help => 'Login password for snmpv3 authentication '
+    );
+    $np->add_arg(
+        spec => 'passwd|x=s',
+        help => 'Auth password for snmpv3 authentication '
+    );
+    $np->add_arg(
+        spec => 'privpass|X=s',
+        help => 'Priv password for snmpv3 (AuthPriv protocol)'
+    );
+    $np->add_arg(
+        spec => 'protocols|L=s',
+        help => '<authproto> : Authentication protocol (md5|sha : default md5)
+   <privproto> : Priv protocole (des|aes : default des)',
+        label => '<authproto>,<privproto>'
+    );
+    $np->add_arg(
+        spec => 'name|m=s',
+        help => 'Name in description OID (can be mountpoints \'/home\' or \'Swap Space\'...)
+   This is treated as a regexp : -m /var will match /var , /var/log, /opt/var ...
+   Test it before, because there are known bugs (ex : trailling /)
+   No trailing slash for mountpoints !',
+        label => 'NAME',
+        required => 1
+    );
+    $np->add_arg(
+        spec => 'storagetype|q=s',
+        help => 'Also check the storage type in addition of the name
+   It is possible to use regular expressions ( "FixedDisk|FloppyDisk" )',
+        label => '<Other|Ram|VirtualMemory|FixedDisk|RemovableDisk|FloppyDisk
+                    | CompactDisk|RamDisk|FlashMemory|NetworkDisk>'
+    );
+    $np->add_arg(
+        spec => 'noregexp|r',
+        help => 'Do not use regexp to match NAME in description OID'
+    );
+    $np->add_arg(
+        spec => 'sum|s',
+        help => 'Add all storages that match NAME (used space and total space)
+   THEN make the tests.'
+    );
+    $np->add_arg(
+        spec => 'index|i',
+        help => 'Parse index table instead of description table to select storage'
+    );
+    $np->add_arg(
+        spec => 'exclude|e',
+        help => 'Select all storages except the one(s) selected by -m
+   No action on storage type selection'
+    );
+    $np->add_arg(
+        spec => 'type|T=s',
+        help => 'pl : calculate percent left
+   pu : calculate percent used (Default)
+   bl : calculate MegaBytes left
+   bu : calculate MegaBytes used',
+        label => '<pl|pu|bl|bu>',
+        default => 'pu'
+    );
+    $np->add_arg(
+        spec => 'warn|w=s',
+        help => 'percent / MB of disk used to generate WARNING state. You can add the % sign',
+        required => 1
+    );
+    $np->add_arg(
+        spec => 'critical|c=s',
+        help => 'percent / MB of disk used to generate CRITICAL state. You can add the % sign',
+        required => 1
+    );
+    $np->add_arg(
+        spec => 'reserved|R=i',
+        help => '% reserved blocks for superuser
+   For ext2/3 filesystems, it is 5% by default'
+    );
+    $np->add_arg(
+        spec => 'gigabyte|G',
+        help => 'output, warning & critical levels in gigabytes'
+    );
+    $np->add_arg(
+        spec => 'perfparse|f',
+        help => 'Perfparse compatible output'
+    );
+    $np->add_arg(
+        spec => 'short|S=s',
+        help => '<type>: Make the output shorter :
+   0 : only print the global result except the disk in warning or critical
+       ex: "< 80% : OK"
+   1 : Don\'t print all info for every disk 
+       ex : "/ : 66 %used  (<  80) : OK"
+   <where>: (optional) if = 1, put the OK/WARN/CRIT at the beginning
+   <cut>: take the <n> first caracters or <n> last if n<0',
+        label => '<type>[,<where>,<cut>]'
+    );
+    $np->add_arg(
+        spec => 'octetlength|o=i',
+        help => 'max-size of the SNMP message, usefull in case of Too Long responses.
+   Be carefull with network filters. Range 484 - 65535, default are
+   usually 1472,1452,1460 or 1440'
+    );
+    $np->getopts;
+
+    $o_host = $np->opts->hostname;
+    $o_descr = $np->opts->name;
+    $o_port = $np->opts->port;
+    $o_domain = $np->opts->domain;
+    
+    $o_timeout = $np->opts->timeout;
+    
+    $o_warn = $np->opts->warn;
+    $o_crit = $np->opts->critical;
+    
+    $o_type = $np->opts->type;
+    
+    $o_community = $np->opts->community;
+    $o_login = $np->opts->login;
+    $o_passwd = $np->opts->passwd;
+    $o_version2 = $np->opts->v2c;
+    $o_privpass = $np->opts->privpass;
+    $v3protocols = $np->opts->protocols;
+    
+    print $o_verb;
+    $o_verb = $np->opts->verbose;
+    print $o_verb;
+    
+    $o_noreg = $np->opts->noregexp;
+    $o_sum = $np->opts->sum;
+    $o_index = $np->opts->index;
+    $o_negate = $np->opts->exclude;
+    $o_storagetype = $np->opts->storagetype;
+    $o_short = $np->opts->short;
+    $o_octetlength = $np->opts->octetlength;
+    $o_perf = $np->opts->perfparse;
+    $o_reserve = $np->opts->reserved;
+    $o_giga = $np->opts->gigabyte;
+    
     # check mount point regexp
     if (!is_pattern_valid($o_descr)) 
 	{ print "Bad pattern for mount point !\n"; print_usage(); exit $ERRORS{"UNKNOWN"}}    
@@ -281,11 +307,7 @@ sub check_options {
 	    print "Put snmp V3 priv login info with priv protocols!\n"; print_usage(); exit $ERRORS{"UNKNOWN"}}
 	}
     # Check types
-    if ( !defined($o_type) ) { $o_type="pu" ;}
     if ( ! grep( /^$o_type$/ ,@o_typeok) ) { print_usage(); exit $ERRORS{"UNKNOWN"}};   
-    # Check compulsory attributes
-    if ( ! defined($o_descr) ||  ! defined($o_host) || !defined($o_warn) || 
-	!defined($o_crit)) { print_usage(); exit $ERRORS{"UNKNOWN"}};
     # Get rid of % sign if any
     $o_warn =~ s/\%//; 
     $o_crit =~ s/\%//;
@@ -328,6 +350,35 @@ sub check_options {
 }
 
 ########## MAIN #######
+
+$np = Monitoring::Plugin->new(
+    version => $Version,
+    shortname => $Name,
+    usage => $usage,
+    license => 'GPLv2',
+    blurb => "SNMP Disk Monitor for Nagios\n(c)2004-2007 Patrick Proy
+
+By default, plugin will monitor %used on drives :
+warn if %used > warn and critical if %used > crit",
+    extra => 
+'
+Note : 
+  with T=pu or T=bu : OK < warn < crit
+  with T=pl ot T=bl : crit < warn < OK
+  
+  If multiple storage are selected, the worse condition will be returned
+  i.e. if one disk is critical, the return is critical
+ 
+  Example : 
+  Browse storage list : <script> -C <community> -H <host> -m <anything> -w 1 -c 2 -v 
+  the -m option allows regexp in perl format : 
+  Test drive C,F,G,H,I on Windows 	: -m ^[CFGHI]:    
+  Test all mounts containing /var      	: -m /var
+  Test all mounts under /var      	: -m ^/var
+  Test only /var                 	: -m /var -r
+  Test all swap spaces			: -m ^Swap
+  Test all but swap spaces		: -m ^Swap -e'
+);
 
 check_options();
 
