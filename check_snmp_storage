@@ -113,8 +113,7 @@ sub is_pattern_valid { # Test for things like "<I\s*[^>" or "+5-i"
 
 # Get the alarm signal (just in case snmp timout screws up)
 $SIG{'ALRM'} = sub {
-    print ("ERROR: General time-out (Alarm signal)\n");
-    exit $ERRORS{"UNKNOWN"};
+    $np->plugin_exit(UNKNOWN, "General time-out (Alarm signal)");
 };
 
 sub isnnum { # Return true if arg is not a number
@@ -296,31 +295,21 @@ sub check_options {
     
     # check mount point regexp
     if (!is_pattern_valid($o_descr)) {
-        print "Bad pattern for mount point !\n";
-        print_usage();
-        exit $ERRORS{"UNKNOWN"};
+        $np->plugin_exit(UNKNOWN, "Bad pattern for mount point !");
     }
     if ($o_domain !~ /^(udp|udp6|tcp|tcp6)$/) {
-        print "Invalid transport domain given!\n";
-        print_usage();
-        exit $ERRORS{"UNKNOWN"};
+        $np->plugin_exit(UNKNOWN, "Invalid transport domain given!");
     }
     # check snmp information
     if ( !defined($o_community) && (!defined($o_login) || !defined($o_passwd)) ) {
-        print "Put snmp login info!\n";
-        print_usage();
-        exit $ERRORS{"UNKNOWN"};
+        $np->plugin_exit(UNKNOWN, "Put snmp login info!");
     }
     if ((defined($o_login) || defined($o_passwd)) && (defined($o_community) || defined($o_version2)) ) {
-        print "Can't mix snmp v1,2c,3 protocols!\n";
-        print_usage();
-        exit $ERRORS{"UNKNOWN"};
+        $np->plugin_exit(UNKNOWN, "Can't mix snmp v1,2c,3 protocols!");
     }
     if (defined ($v3protocols)) {
         if (!defined($o_login)) {
-            print "Put snmp V3 login info with protocols!\n";
-            print_usage();
-            exit $ERRORS{"UNKNOWN"};
+            $np->plugin_exit(UNKNOWN, "Put snmp V3 login info with protocols!");
         }
         my @v3proto=split(/,/,$v3protocols);
         if ((defined ($v3proto[0])) && ($v3proto[0] ne "")) { # Auth protocol
@@ -330,86 +319,63 @@ sub check_options {
             $o_privproto=$v3proto[1];
         }
         if ((defined ($v3proto[1])) && (!defined($o_privpass))) {
-            print "Put snmp V3 priv login info with priv protocols!\n";
-            print_usage();
-            exit $ERRORS{"UNKNOWN"};
+            $np->plugin_exit(UNKNOWN, "Put snmp V3 priv login info with priv protocols!");
         }
     }
     # Check types
     if ( ! grep( /^$o_type$/ ,@o_typeok) ) {
-        print_usage();
-        exit $ERRORS{"UNKNOWN"};
+        $np->plugin_exit(UNKNOWN, "Invalid check type");
     }
     # Get rid of % sign if any
     $o_warn =~ s/\%//; 
     $o_crit =~ s/\%//;
     # Check for positive numbers
     if (($o_warn < 0) || ($o_crit < 0)) {
-        print " warn and critical > 0 \n";
-        print_usage();
-        exit $ERRORS{"UNKNOWN"};
+        $np->plugin_exit(UNKNOWN, " warn and critical > 0");
     }
     # check if warn or crit  in % and MB is tested
     if (  ( ( $o_warn =~ /%/ ) || ($o_crit =~ /%/)) && ( ( $o_type eq 'bu' ) || ( $o_type eq 'bl' ) ) ) {
-        print "warning or critical cannot be in % when MB are tested\n";
-        print_usage();
-        exit $ERRORS{"UNKNOWN"};
+        $np->plugin_exit(UNKNOWN, "warning or critical cannot be in % when MB are tested");
     }
     # Check warning and critical values
     if ( ( $o_type eq 'pu' ) || ( $o_type eq 'bu' )) {
         if ($o_warn >= $o_crit) {
-            print " warn < crit if type=",$o_type,"\n";
-            print_usage();
-            exit $ERRORS{"UNKNOWN"};
+            $np->plugin_exit(UNKNOWN, " warn < crit if type=",$o_type);
         }
     }
     if ( ( $o_type eq 'pl' ) || ( $o_type eq 'bl' )) {
         if ($o_warn <= $o_crit) {
-            print " warn > crit if type=",$o_type,"\n";
-            print_usage();
-            exit $ERRORS{"UNKNOWN"};
+            $np->plugin_exit(UNKNOWN, " warn > crit if type=",$o_type);
         }
     }
     if ( ($o_warn < 0 ) || ($o_crit < 0 )) {
-        print "warn and crit must be > 0\n";
-        print_usage(); 
-        exit $ERRORS{"UNKNOWN"};
+        $np->plugin_exit(UNKNOWN, "warn and crit must be > 0");
     }
     if ( ( $o_type eq 'pl' ) || ( $o_type eq 'pu' )) {
         if ( ($o_warn > 100 ) || ($o_crit > 100 )) {
-            print "percent must be < 100\n";
-            print_usage();
-            exit $ERRORS{"UNKNOWN"};
+            $np->plugin_exit(UNKNOWN, "percent must be < 100");
         }
     } 
     # Check short values
     if ( defined ($o_short)) {
         @o_shortL=split(/,/,$o_short);
         if ((isnnum($o_shortL[0])) || ($o_shortL[0] !=0) && ($o_shortL[0]!=1)) {
-            print "-S first option must be 0 or 1\n";
-            print_usage();
-            exit $ERRORS{"UNKNOWN"};
+            $np->plugin_exit(UNKNOWN, "-S first option must be 0 or 1");
         }
         if (defined ($o_shortL[1])&& $o_shortL[1] eq "") {
             $o_shortL[1]=undef;
         }
         if (defined ($o_shortL[2]) && isnnum($o_shortL[2])) {
-            print "-S last option must be an integer\n";
-            print_usage();
-            exit $ERRORS{"UNKNOWN"};
+            $np->plugin_exit(UNKNOWN, "-S last option must be an integer");
         }
     }
     #### octet length checks
     if (defined ($o_octetlength) && (isnnum($o_octetlength) || $o_octetlength > 65535 || $o_octetlength < 484 )) {
-        print "octet lenght must be < 65535 and > 484\n";
-        print_usage();
-        exit $ERRORS{"UNKNOWN"};
+        $np->plugin_exit(UNKNOWN, "octet lenght must be < 65535 and > 484");
     }
     #### reserved blocks checks (A. Greiner-Bär patch).
     if (defined ($o_reserve) && (isnnum($o_reserve) || $o_reserve > 99 || $o_reserve < 0 )) {
-        print "reserved blocks must be < 100 and >= 0\n";
-        print_usage();
-        exit $ERRORS{"UNKNOWN"};
+        $np->plugin_exit(UNKNOWN, "reserved blocks must be < 100 and >= 0");
     }
 }
 
@@ -513,8 +479,7 @@ if ( defined($o_login) && defined($o_passwd)) {
 }
 
 if (!defined($session)) {
-    printf("ERROR: %s.\n", $error);
-    exit $ERRORS{"UNKNOWN"};
+    $np->plugin_exit(UNKNOWN, $error);
 }
 
 if (defined($o_octetlength)) {
@@ -523,9 +488,8 @@ if (defined($o_octetlength)) {
     verb(" actual max octets:: $oct_test");
     $oct_resultat = $session->max_msg_size($o_octetlength);
     if (!defined($oct_resultat)) {
-        printf("ERROR: Session settings : %s.\n", $session->error);
         $session->close;
-        exit $ERRORS{"UNKNOWN"};
+        $np->plugin_exit(UNKNOWN, sprintf("Session settings : %s.\n", $session->error));
     }
     $oct_test= $session->max_msg_size();
     verb(" new max octets:: $oct_test");
@@ -545,9 +509,8 @@ if (defined($o_storagetype)) {
     $stype = $session->get_table(Baseoid => $storagetype_table);
 }
 if (!defined($resultat) | (!defined($stype) && defined($o_storagetype))) {
-    printf("ERROR: Description/Type table : %s.\n", $session->error);
     $session->close;
-    exit $ERRORS{"UNKNOWN"};
+    $np->plugin_exit(UNKNOWN, sprintf("Description/Type table : %s", $session->error));
 }
 
 my @tindex = undef;
@@ -601,8 +564,7 @@ foreach my $key ( keys %$resultat) {
 }
 verb("storages selected : $num_int");
 if ($num_int == 0) {
-    print "Unknown storage : $o_descr : ERROR\n";
-    exit $ERRORS{"UNKNOWN"};
+    $np->plugin_exit(UNKNOWN, "Unknown storage : $o_descr : ERROR\n");
 }
 
 my $result=undef;
@@ -620,9 +582,8 @@ if ($session->version == 0) {
 }
 
 if (!defined($result)) {
-    printf("ERROR: Size table :%s.\n", $session->error);
     $session->close;
-    exit $ERRORS{"UNKNOWN"};
+    $np->plugin_exit(UNKNOWN, sprintf("Size table :%s", $session->error));
 }
 
 $session->close;
@@ -668,9 +629,8 @@ for ($i=0;$i<$num_int;$i++) {
         !defined($$result{$used_table . $tindex[$i]}) || 
         !defined ($$result{$alloc_units . $tindex[$i]})
     ) {
-        print "Data not fully defined for storage ",$descr[$i]," : UNKNOWN\n";
-        exit $ERRORS{"UNKNOWN"};
-  }
+        $np->plugin_exit(UNKNOWN, "Data not fully defined for storage ",$descr[$i]," : UNKNOWN\n");
+    }
     my $to = $$result{$size_table . $tindex[$i]} * ( ( 100 - $o_reserve ) / 100 ) * $$result{$alloc_units . $tindex[$i]} / $output_metric_val;
     my $pu=undef;
     if ( $$result{$used_table . $tindex[$i]} != 0 ) {
@@ -762,31 +722,32 @@ my $comp_unit=undef;
 
 if (!defined ($output)) { $output="All selected storages "; }
 
+my $str_output = "";
 if ( $crit_state == 1) {
     $comp_oper = ($comp_oper eq "<") ? ">" : "<";  # Inverse comp operator
     if (defined($o_shortL[1])) {
-        print "CRITICAL : (",$comp_oper,$o_crit,$comp_unit,") ",$output;
+        $str_output = join("CRITICAL : (",$comp_oper,$o_crit,$comp_unit,") ",$output);
     } else {
-        print $output,"(",$comp_oper,$o_crit,$comp_unit,") : CRITICAL";
+        $str_output = join($output,"(",$comp_oper,$o_crit,$comp_unit,") : CRITICAL");
     }
     (defined($o_perf)) ?  print " | ",$perf_out,"\n" : print "\n";
-    exit $ERRORS{"CRITICAL"};
+    $np->plugin_exit(CRITICAL, $str_output);
 }
 if ( $warn_state == 1) {
     $comp_oper = ($comp_oper eq "<") ? ">" : "<";  # Inverse comp operator
     if (defined($o_shortL[1])) {
-        print "WARNING : (",$comp_oper,$o_warn,$comp_unit,") ",$output;
+        $str_output = join("WARNING : (",$comp_oper,$o_warn,$comp_unit,") ",$output);
     } else {
-        print $output,"(",$comp_oper,$o_warn,$comp_unit,") : WARNING";
+        $str_output = join($output,"(",$comp_oper,$o_warn,$comp_unit,") : WARNING");
     }
     (defined($o_perf)) ?  print " | ",$perf_out,"\n" : print "\n";
-    exit $ERRORS{"WARNING"};
+    $np->plugin_exit(WARNING);
 }
 if (defined($o_shortL[1])) {
-    print "OK : (",$comp_oper,$o_warn,$comp_unit,") ",$output;
+    $str_output = join("OK : (",$comp_oper,$o_warn,$comp_unit,") ",$output);
 } else {
-    print $output,"(",$comp_oper,$o_warn,$comp_unit,") : OK";
+    $str_output = join($output,"(",$comp_oper,$o_warn,$comp_unit,") : OK");
 }
 (defined($o_perf)) ? print " | ",$perf_out,"\n" : print "\n";
 
-exit $ERRORS{"OK"};
+$np->plugin_exit(OK, $str_output);
