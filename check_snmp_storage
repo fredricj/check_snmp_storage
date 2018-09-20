@@ -287,63 +287,121 @@ sub check_options {
     $o_giga = $np->opts->gigabyte;
     
     # check mount point regexp
-    if (!is_pattern_valid($o_descr)) 
-	{ print "Bad pattern for mount point !\n"; print_usage(); exit $ERRORS{"UNKNOWN"}}    
-    if ($o_domain !~ /^(udp|udp6|tcp|tcp6)$/)
-    { print "Invalid transport domain given!\n"; print_usage(); exit $ERRORS{"UNKNOWN"}}
+    if (!is_pattern_valid($o_descr)) {
+        print "Bad pattern for mount point !\n";
+        print_usage();
+        exit $ERRORS{"UNKNOWN"};
+    }
+    if ($o_domain !~ /^(udp|udp6|tcp|tcp6)$/) {
+        print "Invalid transport domain given!\n";
+        print_usage();
+        exit $ERRORS{"UNKNOWN"};
+    }
     # check snmp information
-    if ( !defined($o_community) && (!defined($o_login) || !defined($o_passwd)) )
-	  { print "Put snmp login info!\n"; print_usage(); exit $ERRORS{"UNKNOWN"}}
-	if ((defined($o_login) || defined($o_passwd)) && (defined($o_community) || defined($o_version2)) )
-	  { print "Can't mix snmp v1,2c,3 protocols!\n"; print_usage(); exit $ERRORS{"UNKNOWN"}}
-	if (defined ($v3protocols)) {
-	  if (!defined($o_login)) { print "Put snmp V3 login info with protocols!\n"; print_usage(); exit $ERRORS{"UNKNOWN"}}
-	  my @v3proto=split(/,/,$v3protocols);
-	  if ((defined ($v3proto[0])) && ($v3proto[0] ne "")) {$o_authproto=$v3proto[0];	}	# Auth protocol
-	  if (defined ($v3proto[1])) {$o_privproto=$v3proto[1];	}	# Priv  protocol
-	  if ((defined ($v3proto[1])) && (!defined($o_privpass))) {
-	    print "Put snmp V3 priv login info with priv protocols!\n"; print_usage(); exit $ERRORS{"UNKNOWN"}}
-	}
+    if ( !defined($o_community) && (!defined($o_login) || !defined($o_passwd)) ) {
+        print "Put snmp login info!\n";
+        print_usage();
+        exit $ERRORS{"UNKNOWN"};
+    }
+    if ((defined($o_login) || defined($o_passwd)) && (defined($o_community) || defined($o_version2)) ) {
+        print "Can't mix snmp v1,2c,3 protocols!\n";
+        print_usage();
+        exit $ERRORS{"UNKNOWN"};
+    }
+    if (defined ($v3protocols)) {
+        if (!defined($o_login)) {
+            print "Put snmp V3 login info with protocols!\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
+        my @v3proto=split(/,/,$v3protocols);
+        if ((defined ($v3proto[0])) && ($v3proto[0] ne "")) { # Auth protocol
+            $o_authproto=$v3proto[0];
+        }
+        if (defined ($v3proto[1])) { # Priv  protocol
+            $o_privproto=$v3proto[1];
+        }
+        if ((defined ($v3proto[1])) && (!defined($o_privpass))) {
+            print "Put snmp V3 priv login info with priv protocols!\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
+    }
     # Check types
-    if ( ! grep( /^$o_type$/ ,@o_typeok) ) { print_usage(); exit $ERRORS{"UNKNOWN"}};   
+    if ( ! grep( /^$o_type$/ ,@o_typeok) ) {
+        print_usage();
+        exit $ERRORS{"UNKNOWN"};
+    }
     # Get rid of % sign if any
     $o_warn =~ s/\%//; 
     $o_crit =~ s/\%//;
     # Check for positive numbers
-    if (($o_warn < 0) || ($o_crit < 0)) { print " warn and critical > 0 \n";print_usage(); exit $ERRORS{"UNKNOWN"}};
+    if (($o_warn < 0) || ($o_crit < 0)) {
+        print " warn and critical > 0 \n";
+        print_usage();
+        exit $ERRORS{"UNKNOWN"};
+    }
     # check if warn or crit  in % and MB is tested
     if (  ( ( $o_warn =~ /%/ ) || ($o_crit =~ /%/)) && ( ( $o_type eq 'bu' ) || ( $o_type eq 'bl' ) ) ) {
-	print "warning or critical cannot be in % when MB are tested\n";
-	print_usage(); exit $ERRORS{"UNKNOWN"};
+        print "warning or critical cannot be in % when MB are tested\n";
+        print_usage();
+        exit $ERRORS{"UNKNOWN"};
     }
     # Check warning and critical values
     if ( ( $o_type eq 'pu' ) || ( $o_type eq 'bu' )) {
-	if ($o_warn >= $o_crit) { print " warn < crit if type=",$o_type,"\n";print_usage(); exit $ERRORS{"UNKNOWN"}};
+        if ($o_warn >= $o_crit) {
+            print " warn < crit if type=",$o_type,"\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
     }
     if ( ( $o_type eq 'pl' ) || ( $o_type eq 'bl' )) {
-	if ($o_warn <= $o_crit) { print " warn > crit if type=",$o_type,"\n";print_usage(); exit $ERRORS{"UNKNOWN"}};
+        if ($o_warn <= $o_crit) {
+            print " warn > crit if type=",$o_type,"\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
     }
-    if ( ($o_warn < 0 ) || ($o_crit < 0 )) { print "warn and crit must be > 0\n";print_usage(); exit $ERRORS{"UNKNOWN"}}; 
+    if ( ($o_warn < 0 ) || ($o_crit < 0 )) {
+        print "warn and crit must be > 0\n";
+        print_usage(); 
+        exit $ERRORS{"UNKNOWN"};
+    }
     if ( ( $o_type eq 'pl' ) || ( $o_type eq 'pu' )) {
-        if ( ($o_warn > 100 ) || ($o_crit > 100 )) { print "percent must be < 100\n";print_usage(); exit $ERRORS{"UNKNOWN"}}; 
+        if ( ($o_warn > 100 ) || ($o_crit > 100 )) {
+            print "percent must be < 100\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
     } 
-	# Check short values
-	if ( defined ($o_short)) {
- 	  @o_shortL=split(/,/,$o_short);
-	  if ((isnnum($o_shortL[0])) || ($o_shortL[0] !=0) && ($o_shortL[0]!=1)) {
-	    print "-S first option must be 0 or 1\n";print_usage(); exit $ERRORS{"UNKNOWN"};
-	  }
-	  if (defined ($o_shortL[1])&& $o_shortL[1] eq "") {$o_shortL[1]=undef};
-	  if (defined ($o_shortL[2]) && isnnum($o_shortL[2]))
-	    {print "-S last option must be an integer\n";print_usage(); exit $ERRORS{"UNKNOWN"};}
-	}
+    # Check short values
+    if ( defined ($o_short)) {
+        @o_shortL=split(/,/,$o_short);
+        if ((isnnum($o_shortL[0])) || ($o_shortL[0] !=0) && ($o_shortL[0]!=1)) {
+            print "-S first option must be 0 or 1\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
+        if (defined ($o_shortL[1])&& $o_shortL[1] eq "") {
+            $o_shortL[1]=undef;
+        }
+        if (defined ($o_shortL[2]) && isnnum($o_shortL[2])) {
+            print "-S last option must be an integer\n";
+            print_usage();
+            exit $ERRORS{"UNKNOWN"};
+        }
+    }
     #### octet length checks
     if (defined ($o_octetlength) && (isnnum($o_octetlength) || $o_octetlength > 65535 || $o_octetlength < 484 )) {
-		print "octet lenght must be < 65535 and > 484\n";print_usage(); exit $ERRORS{"UNKNOWN"};
-    }	
+        print "octet lenght must be < 65535 and > 484\n";
+        print_usage();
+        exit $ERRORS{"UNKNOWN"};
+    }
     #### reserved blocks checks (A. Greiner-Bär patch).
     if (defined ($o_reserve) && (isnnum($o_reserve) || $o_reserve > 99 || $o_reserve < 0 )) {
-		print "reserved blocks must be < 100 and >= 0\n";print_usage(); exit $ERRORS{"UNKNOWN"};
+        print "reserved blocks must be < 100 and >= 0\n";
+        print_usage();
+        exit $ERRORS{"UNKNOWN"};
     }
 }
 
