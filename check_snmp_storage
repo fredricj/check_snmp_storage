@@ -19,11 +19,6 @@ use Monitoring::Plugin;
 my $Name = 'check_snmp_storage';
 my $Version = '1.4';
 my $np;
-# Nagios specific
-
-#use lib "/usr/local/nagios/libexec";
-#use utils qw(%ERRORS $TIMEOUT);
-my %ERRORS=('OK'=>0,'WARNING'=>1,'CRITICAL'=>2,'UNKNOWN'=>3,'DEPENDENT'=>4);
 
 # SNMP Datas
 my $storage_table= '1.3.6.1.2.1.25.2.3.1';
