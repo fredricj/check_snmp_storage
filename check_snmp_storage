@@ -23,7 +23,6 @@ my $np;
 
 #use lib "/usr/local/nagios/libexec";
 #use utils qw(%ERRORS $TIMEOUT);
-my $TIMEOUT = 15;
 my %ERRORS=('OK'=>0,'WARNING'=>1,'CRITICAL'=>2,'UNKNOWN'=>3,'DEPENDENT'=>4);
 
 # SNMP Datas
@@ -76,7 +75,7 @@ my $o_noreg         = undef;    # Do not use Regexp for name
 my $o_sum           = undef;    # add all storage before testing
 my $o_index         = undef;    # Parse index instead of description
 my $o_negate        = undef;    # Negate the regexp if set
-my $o_timeout       = 5;         # Default 5s Timeout
+my $o_timeout       = undef;         # Timeout
 my $o_perf          = undef;    # Output performance data
 my $o_short         = undef;    # Short output parameters
 my @o_shortL        = undef;    # output type,where,cut
@@ -412,14 +411,9 @@ Note :
 
 check_options();
 
-# Check gobal timeout
-if (defined($TIMEOUT)) {
-  verb("Alarm at $TIMEOUT");
-  alarm($TIMEOUT);
-} else {
-  verb("no timeout defined : $o_timeout + 10");
-  alarm ($o_timeout+10);
-}
+# Setup global timeout
+verb("Alarm at ". $o_timeout);
+alarm($o_timeout);
 
 # Connect to host
 my ($session,$error);
