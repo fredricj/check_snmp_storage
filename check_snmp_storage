@@ -89,10 +89,6 @@ my $usage = "Usage: $Name [-v] -H <host> -C <snmp_community> [-2] | (-l login -x
 
 # functions
 
-sub print_usage {
-    print $usage;
-}
-
 sub round ($$) {
     sprintf "%.$_[1]f", $_[0];
 }
