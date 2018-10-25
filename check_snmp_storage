@@ -473,8 +473,9 @@ if (defined($o_octetlength)) {
     verb(" actual max octets:: $oct_test");
     $oct_resultat = $session->max_msg_size($o_octetlength);
     if (!defined($oct_resultat)) {
+        my $session_error = $session->error;
         $session->close;
-        $np->plugin_exit(UNKNOWN, sprintf("Session settings : %s.\n", $session->error));
+        $np->plugin_exit(UNKNOWN, sprintf("Session settings : %s.\n", $session_error));
     }
     $oct_test= $session->max_msg_size();
     verb(" new max octets:: $oct_test");
@@ -494,8 +495,9 @@ if (defined($o_storagetype)) {
     $stype = $session->get_table(Baseoid => $storagetype_table);
 }
 if (!defined($resultat) | (!defined($stype) && defined($o_storagetype))) {
+    my $session_error = $session->error;
     $session->close;
-    $np->plugin_exit(UNKNOWN, sprintf("Description/Type table : %s", $session->error));
+    $np->plugin_exit(UNKNOWN, sprintf("Description/Type table : %s", $session_error));
 }
 
 my @tindex = undef;
@@ -567,8 +569,9 @@ if ($session->version == 0) {
 }
 
 if (!defined($result)) {
+    my $session_error = $session->error;
     $session->close;
-    $np->plugin_exit(UNKNOWN, sprintf("Size table :%s", $session->error));
+    $np->plugin_exit(UNKNOWN, sprintf("Size table :%s", $session_error));
 }
 
 $session->close;
