@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 ############################## check_snmp_storage ##############
-# Version : 1.4
-# Date :  Sep 7, 2018
+# Version : 1.5
+# Date :  Oct 30, 2018
 # Author  : Patrick Proy ( patrick at proy.org)
 # Help : http://nagios.manubulon.com
 # Licence : GPL - http://www.fsf.org/licenses/gpl.txt
@@ -17,7 +17,7 @@ use Getopt::Long;
 use Monitoring::Plugin;
 
 my $Name = 'check_snmp_storage';
-my $Version = '1.4';
+my $Version = '1.5';
 my $np;
 
 # SNMP Datas
