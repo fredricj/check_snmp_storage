@@ -551,7 +551,7 @@ foreach my $key ( keys %$resultat) {
 }
 verb("storages selected : $num_int");
 if ($num_int == 0) {
-    $np->plugin_exit(UNKNOWN, "Unknown storage : $o_descr : ERROR\n");
+    $np->plugin_exit(UNKNOWN, "Unknown storage: $o_descr");
 }
 
 my $result=undef;
