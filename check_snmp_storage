@@ -729,7 +729,7 @@ if ( $warn_state == 1) {
         $str_output = join("", $output,"(",$comp_oper,$o_warn,$comp_unit,") : WARNING");
     }
     (defined($o_perf)) ?  print " | ",$perf_out,"\n" : print "\n";
-    $np->plugin_exit(WARNING);
+    $np->plugin_exit(WARNING, $str_output);
 }
 if (defined($o_shortL[1])) {
     $str_output = join("", "(",$comp_oper,$o_warn,$comp_unit,") ",$output);
