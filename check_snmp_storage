@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 ############################## check_snmp_storage ##############
-# Version : 1.5
-# Date :  Oct 30, 2018
+# Version : 1.5.1
+# Date :  Oct 31, 2018
 # Author  : Patrick Proy ( patrick at proy.org)
 # Help : http://nagios.manubulon.com
 # Licence : GPL - http://www.fsf.org/licenses/gpl.txt
