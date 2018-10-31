@@ -718,7 +718,9 @@ if ( $crit_state == 1) {
     } else {
         $str_output = join("", $output,"(",$comp_oper,$o_crit,$comp_unit,") : CRITICAL");
     }
-    (defined($o_perf)) ?  print " | ",$perf_out,"\n" : print "\n";
+    if (defined($o_perf)) {
+        $str_output .= join("", " | ",$perf_out);
+    }
     $np->plugin_exit(CRITICAL, $str_output);
 }
 if ( $warn_state == 1) {
@@ -728,7 +730,9 @@ if ( $warn_state == 1) {
     } else {
         $str_output = join("", $output,"(",$comp_oper,$o_warn,$comp_unit,") : WARNING");
     }
-    (defined($o_perf)) ?  print " | ",$perf_out,"\n" : print "\n";
+    if (defined($o_perf)) {
+        $str_output .= join("", " | ",$perf_out);
+    }
     $np->plugin_exit(WARNING, $str_output);
 }
 if (defined($o_shortL[1])) {
@@ -736,6 +740,8 @@ if (defined($o_shortL[1])) {
 } else {
     $str_output = join("", $output,"(",$comp_oper,$o_warn,$comp_unit,")");
 }
-(defined($o_perf)) ? print " | ",$perf_out,"\n" : print "\n";
+if (defined($o_perf)) {
+    $str_output .= join("", " | ",$perf_out);
+}
 
 $np->plugin_exit(OK, $str_output);
