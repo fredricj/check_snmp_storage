@@ -17,7 +17,7 @@ use Getopt::Long;
 use Monitoring::Plugin;
 
 my $Name = 'check_snmp_storage';
-my $Version = '1.5';
+my $Version = '1.5.1';
 my $np;
 
 # SNMP Datas
